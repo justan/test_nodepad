@@ -1,4 +1,4 @@
-h2= title
+h1= title
 form(method='post', action='/documents/' + d.id)
   input(name='_method', value='PUT', type='hidden')
   != partial('field', {locals: {d: d}})

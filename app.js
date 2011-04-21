@@ -38,18 +38,14 @@ app.get('/', function(req, res){
 });
 
 // List
-app.get('/documents.:format', function(req, res) {
-
-});
-
-app.get('/documents', function(req, res) {
+app.get('/documents.:format?', function(req, res){
   Document.find({}, function(err, documents) {
     res.render('./documents', {documents: documents, title: 'documents'});
   });
 });
 
 // Create 
-app.post('/documents.:format?', function(req, res) {
+app.post('/documents.:format?', function(req, res){
   //console.log("-- " + JSON.stringify(req.body['document']));
   var document = new Document(req.body);
   document.save(function(){
@@ -65,23 +61,23 @@ app.post('/documents.:format?', function(req, res) {
 });
 
 // Read
-app.get('/documents/:id.:format?', function(req, res, next) {
-  Document.findById(req.params.id, function(documents){
+app.get('/documents/:id.:format?', function(req, res, next){
+  Document.findById(req.params.id, function(err, document){
 	switch(req.params.format){
 	  case'json':
-	    documents ? res.send(documents.map(function(d){
+	    res.send(document.map(function(d){
 		  return d.__doc;
-		})) : next();
+		}));
 	    break;
 	  default:
-	    !/(:?new)/i.test(req.params.id) ? res.render('./documents/show', {documents: documents, title: req.params.id}) : next();
+	    !/(:?new)/i.test(req.params.id) ? res.render('./documents/show', {d: document, title: document.title}) : next();
 	    break;
 	};
   });
 });
 
 // Update
-app.put('/documents/:id.:format?', function(req, res) {
+app.put('/documents/:id.:format?', function(req, res){
   Document.findById(req.params.id, function(err, d){
 	d.title = req.body.title;
 	d.data = req.body.data;
@@ -98,9 +94,9 @@ app.put('/documents/:id.:format?', function(req, res) {
 });
 
 // Delete
-app.del('/documents/:id.:format?', function(req, res) {
+app.del('/documents/:id.:format?', function(req, res){
+  console.log('del')
 });
-
 
 //new
 app.get('/documents/new', function(req, res){
