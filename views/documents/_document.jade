@@ -1,3 +1,6 @@
 li
-  #{JSON.stringify(document)} - #{typeof document.data}
+  a.title(href='#') #{document.title}
+  = ' '
   a.button.edit(href= '../documents/' + document._id + '/edit') edit
+  = ' '
+  a.button.edit(href= '../documents/' + document._id + '/edit') delete

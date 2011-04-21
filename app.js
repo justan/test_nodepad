@@ -39,11 +39,19 @@ app.get('/', function(req, res){
 
 // List
 app.get('/documents.:format', function(req, res) {
+
+});
+
+app.get('/documents', function(req, res) {
+  Document.find({}, function(err, documents) {
+    res.render('./documents', {documents: documents, title: 'documents'});
+  });
 });
 
 // Create 
 app.post('/documents.:format?', function(req, res) {
-  var document = new Document(req.body['document']);
+  //console.log("-- " + JSON.stringify(req.body['document']));
+  var document = new Document(req.body);
   document.save(function(){
 	switch(req.params.format){
 	  case'json':
@@ -74,17 +82,25 @@ app.get('/documents/:id.:format?', function(req, res, next) {
 
 // Update
 app.put('/documents/:id.:format?', function(req, res) {
+  Document.findById(req.params.id, function(err, d){
+	d.title = req.body.title;
+	d.data = req.body.data;
+	d.save(function(){
+	  switch(req.params.format){
+	    case'json':
+		  break;
+		default:
+		  res.redirect('./documents');
+		  break;
+	  }
+	});
+  });
 });
 
 // Delete
 app.del('/documents/:id.:format?', function(req, res) {
 });
 
-app.get('/documents', function(req, res) {
-  Document.find({}, function(err, documents) {
-    res.render('./documents', {documents: documents, title: 'documents'});
-  });
-});
 
 //new
 app.get('/documents/new', function(req, res){
@@ -96,10 +112,6 @@ app.get('/documents/:id.:format?/edit', function(req, res){
   Document.findById(req.params.id, function(err, d){
     res.render('./documents/edit', {d: d, title: 'edit ' + d.title});
   });
-});
-
-app.get('*', function(req, res){
-  res.send('not found', 404);
 });
 
 // Only listen on $ node app.js

@@ -1,13 +1,14 @@
 var mongoose = require('mongoose'),
   Schema = mongoose.Schema;
 
-mongoose.model('Document', new Schema({
-  properties: ['title', 'data', 'tags', 'user_id'],
-  indexes: [
-    'title',
-	'user_id'
-  ]
-}));
+var Document = new Schema({
+  title: {type: String, index: true},
+  data: {type: String},
+  tags: {type: String},
+  user_id: {type: Number, index: true},
+});
+  
+mongoose.model('Document', Document);
 
 exports.Document = function(db){
   return db.model('Document');
