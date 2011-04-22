@@ -16,17 +16,21 @@ app.configure(function(){
   app.set('views', __dirname + '/views');
   app.set('view engine', 'jade');
   app.use(express.bodyParser());
+  app.use(express.cookieParser());
+  app.use(express.session({ secret: 'your secret here' }));
   app.use(express.methodOverride());
   app.use(app.router);
   app.use(express.static(__dirname + '/public'));
 });
 
 app.configure('development', function(){
-  app.use(express.errorHandler({ dumpExceptions: true, showStack: true })); 
+  //app.use(express.logger());
+  app.use(express.errorHandler({ dumpExceptions: true, showStack: true }));
+  app.set('db-uri', 'mongodb://localhost/nodepad-development');
 });
 
 app.configure('production', function(){
-  app.use(express.errorHandler()); 
+  app.use(express.errorHandler());
 });
 
 // Routes
@@ -76,26 +80,39 @@ app.get('/documents/:id.:format?', function(req, res, next){
   });
 });
 
-// Update
-app.put('/documents/:id.:format?', function(req, res){
-  Document.findById(req.params.id, function(err, d){
-	d.title = req.body.title;
-	d.data = req.body.data;
-	d.save(function(){
-	  switch(req.params.format){
-	    case'json':
-		  break;
-		default:
-		  res.redirect('./documents');
-		  break;
-	  }
-	});
+function update(req, res, next){
+	Document.findById(req.params.id, function(err, d){
+    var fn = "save";
+    if(err){
+      next(new Error('no this doc'));
+    }
+    if(req.method == "DELETE"){
+      fn = 'remove';
+    }else if(req.method == 'PUT'){
+      fn = 'save';
+      d.title = req.body.title;
+      d.data = req.body.data;
+    }
+	  d[fn](function(){
+	    next();
+	  });
   });
+}
+
+// Update
+app.put('/documents/:id.:format?', update, function(req, res){
+  switch(req.params.format){
+    case'json':
+    break;
+  default:
+    res.redirect('./documents');
+    break;
+  }
 });
 
 // Delete
-app.del('/documents/:id.:format?', function(req, res){
-  console.log('del')
+app.del('/documents/:id.:format?', update, function(req, res){
+  res.send('{"result": true}');
 });
 
 //new
