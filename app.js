@@ -5,9 +5,11 @@
 
 var express = require('express'),
   mongoose = require('mongoose'),
+  mongoStore = require('connect-mongodb'),
   db = mongoose.connect('mongodb://localhost/nodepad'),
-  Document = require('./models').Document(db);
-
+  Document = require('./models').Document(db),
+  User = require('./models').Document(db);
+  
 var app = module.exports = express.createServer();
 
 // Configuration
@@ -17,16 +19,23 @@ app.configure(function(){
   app.set('view engine', 'jade');
   app.use(express.bodyParser());
   app.use(express.cookieParser());
-  app.use(express.session({ secret: 'your secret here' }));
+  app.use(express.session({
+    secret: 'justan',
+    store: mongoStore({
+        dbname: 'nodepad',
+        //host: db.db.serverConfig.host,
+        //port: db.db.serverConfig.port,
+        //username: db.uri.username,
+        //password: db.uri.password
+      })
+  }));
   app.use(express.methodOverride());
   app.use(app.router);
   app.use(express.static(__dirname + '/public'));
 });
 
 app.configure('development', function(){
-  //app.use(express.logger());
   app.use(express.errorHandler({ dumpExceptions: true, showStack: true }));
-  app.set('db-uri', 'mongodb://localhost/nodepad-development');
 });
 
 app.configure('production', function(){
@@ -34,6 +43,21 @@ app.configure('production', function(){
 });
 
 // Routes
+
+function loadUser(req, res, next) {
+  if (req.session.user_id) {
+    User.findById(req.session.user_id, function(user) {
+      if (user) {
+        req.currentUser = user;
+        next();
+      } else {
+        res.redirect('/sessions/new');
+      }
+    });
+  } else {
+    res.redirect('/sessions/new');
+  }
+}
 
 app.get('/', function(req, res){
   res.render('index', {
@@ -80,6 +104,10 @@ app.get('/documents/:id.:format?', function(req, res, next){
   });
 });
 
+
+//documents
+(function(){
+
 function update(req, res, next){
 	Document.findById(req.params.id, function(err, d){
     var fn = "save";
@@ -125,6 +153,60 @@ app.get('/documents/:id.:format?/edit', function(req, res){
   Document.findById(req.params.id, function(err, d){
     res.render('./documents/edit', {d: d, title: 'edit ' + d.title});
   });
+});
+})();
+
+// Sessions
+app.get('/sessions/new', function(req, res) {
+  res.render('sessions/new', {
+    locals: { user: new User() }
+  });
+});
+
+app.post('/sessions', function(req, res) {
+  // Find the user and set the currentUser session variable
+});
+
+app.del('/sessions', loadUser, function(req, res) {
+  // Remove the session
+  if (req.session) {
+    req.session.destroy(function() {});
+  }
+  res.redirect('/sessions/new');
+});
+
+app.post('/users.:format?', function(req, res) {
+  var user = new User(req.body);
+
+  function userSaved() {
+    switch (req.params.format) {
+      case 'json':
+        res.send(user.__doc);
+      break;
+
+      default:
+        req.session.user_id = user.id;
+        res.redirect('/documents');
+    }
+  }
+
+  function userSaveFailed() {
+    res.render('users/new', {
+      locals: { user: user }
+    });
+  }
+
+  user.save(userSaved, userSaveFailed);
+});
+
+//comet
+app.get('/comet', function(req, res, next){
+  //console.log(req.headers)
+  if(req.headers['x-requested-with'] == 'XMLHttpRequest'){
+    setTimeout(function(){res.end('')}, 30000)
+  }else{
+    next();
+  }
 });
 
 // Only listen on $ node app.js
