@@ -8,7 +8,7 @@ var express = require('express'),
   mongoStore = require('connect-mongodb'),
   db = mongoose.connect('mongodb://localhost/nodepad'),
   Document = require('./models').Document(db),
-  User = require('./models').Document(db);
+  User = require('./models').User(db);
   
 var app = module.exports = express.createServer();
 
@@ -46,7 +46,7 @@ app.configure('production', function(){
 
 function loadUser(req, res, next) {
   if (req.session.user_id) {
-    User.findById(req.session.user_id, function(user) {
+    User.findById(req.session.user_id, function(err, user) {
       if (user) {
         req.currentUser = user;
         next();
@@ -59,27 +59,30 @@ function loadUser(req, res, next) {
   }
 }
 
-app.get('/', function(req, res){
+app.get('/', loadUser, function(req, res){
   res.render('index', {
     title: 'Express'
   });
 });
 
+//documents
+(function(){
+
 // List
-app.get('/documents.:format?', function(req, res){
+app.get('/documents.:format?', loadUser, function(req, res){
   Document.find({}, function(err, documents) {
-    res.render('./documents', {documents: documents, title: 'documents'});
+    res.render('./documents', {documents: documents, currentUser: req.currentUser, title: 'documents'});
   });
 });
 
 // Create 
-app.post('/documents.:format?', function(req, res){
+app.post('/documents.:format?', loadUser, function(req, res){
   //console.log("-- " + JSON.stringify(req.body['document']));
   var document = new Document(req.body);
   document.save(function(){
 	switch(req.params.format){
 	  case'json':
-	    res.send(document.__doc);
+	    res.send(document.doc);
 	    break;
 	  default:
 	    res.redirect('./documents');
@@ -94,7 +97,7 @@ app.get('/documents/:id.:format?', function(req, res, next){
 	switch(req.params.format){
 	  case'json':
 	    res.send(document.map(function(d){
-		  return d.__doc;
+		  return d.doc;
 		}));
 	    break;
 	  default:
@@ -103,10 +106,6 @@ app.get('/documents/:id.:format?', function(req, res, next){
 	};
   });
 });
-
-
-//documents
-(function(){
 
 function update(req, res, next){
 	Document.findById(req.params.id, function(err, d){
@@ -128,7 +127,7 @@ function update(req, res, next){
 }
 
 // Update
-app.put('/documents/:id.:format?', update, function(req, res){
+app.put('/documents/:id.:format?', loadUser, update, function(req, res){
   switch(req.params.format){
     case'json':
     break;
@@ -139,17 +138,17 @@ app.put('/documents/:id.:format?', update, function(req, res){
 });
 
 // Delete
-app.del('/documents/:id.:format?', update, function(req, res){
+app.del('/documents/:id.:format?', loadUser, update, function(req, res){
   res.send('{"result": true}');
 });
 
 //new
-app.get('/documents/new', function(req, res){
+app.get('/documents/new', loadUser, function(req, res){
   res.render('./documents/new', {d: new Document(), title: 'New document'});
 });
 
 //edit
-app.get('/documents/:id.:format?/edit', function(req, res){
+app.get('/documents/:id.:format?/edit', loadUser, function(req, res){
   Document.findById(req.params.id, function(err, d){
     res.render('./documents/edit', {d: d, title: 'edit ' + d.title});
   });
@@ -159,29 +158,42 @@ app.get('/documents/:id.:format?/edit', function(req, res){
 // Sessions
 app.get('/sessions/new', function(req, res) {
   res.render('sessions/new', {
-    locals: { user: new User() }
+    locals: { user: new User(), title: 'Log in'}
   });
 });
 
+// log in
 app.post('/sessions', function(req, res) {
-  // Find the user and set the currentUser session variable
+  User.findOne({email: req.body.email}, function(err, user){
+    if(user && user.authenticate(req.body.password)){
+	  req.session.user_id = user.id;
+	  res.redirect('/documents');
+	}else{
+	  //TODO: show error
+	  res.redirect('/sessions/new');
+	}
+  });
 });
 
+// log out
 app.del('/sessions', loadUser, function(req, res) {
   // Remove the session
   if (req.session) {
-    req.session.destroy(function() {});
+    req.session.destroy(function() {
+	  delete(req.currentUser);
+	});
   }
   res.redirect('/sessions/new');
 });
 
+//register
 app.post('/users.:format?', function(req, res) {
   var user = new User(req.body);
-
+  console.log(req.body)
   function userSaved() {
     switch (req.params.format) {
       case 'json':
-        res.send(user.__doc);
+        res.send(user.doc);
       break;
 
       default:
@@ -189,21 +201,28 @@ app.post('/users.:format?', function(req, res) {
         res.redirect('/documents');
     }
   }
-
   function userSaveFailed() {
-    res.render('users/new', {
-      locals: { user: user }
-    });
+    res.render('./users/new', { user: user });
   }
 
-  user.save(userSaved, userSaveFailed);
+  user.save(function(err){
+    if(err){
+	  userSaveFailed()
+	}else{
+      userSaved()
+	}
+  });
+});
+
+app.get('/users/new', function(req, res){
+  res.render('./users/new', {user: new User(), title: 'Register'})
 });
 
 //comet
 app.get('/comet', function(req, res, next){
   //console.log(req.headers)
   if(req.headers['x-requested-with'] == 'XMLHttpRequest'){
-    setTimeout(function(){res.end('')}, 30000)
+    setTimeout(function(){res.end('{}')}, 60000)
   }else{
     next();
   }

@@ -1,3 +1,4 @@
+(function($){
 $('.destroy').live('click', function(e) {
   e.preventDefault();
   if (confirm('Are you sure you want to delete that item?')) {
@@ -14,16 +15,34 @@ $('.destroy').live('click', function(e) {
     });
   }
 });
+
+$('.logout').live('click', function(e) {
+  e.preventDefault();
+    $.ajax({
+      url: '/sessions',
+      type: 'post',
+      data: {'_method': 'delete'},
+      success: function(d){
+        alert('log out success');
+      },
+      error: function(){
+        alert('error')
+      }
+    });
+});
+
 (function comet(){
   $.ajax({
     url: '/comet',
-    type: 'json',
+    type: 'get',
+	dataType: 'json',
     success: function(data){
-      
-      comet();
+      console.log("1234")
+      //comet();
     },
     error: function(){
       setTimeout(function(){comet()}, 3000);
     }
   });
- })();
+})();
+})(jQuery);

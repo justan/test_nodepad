@@ -1,1 +1,7 @@
-h1
+h1 New User
+form(method='post', action='/users')
+  != partial('field', {locals: {user: user}})
+  div
+    input(type='submit', value='Register')
+    span \ or
+      a(href='/sessions/new') Log In

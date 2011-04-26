@@ -2,21 +2,36 @@ var mongoose = require('mongoose'),
   Schema = mongoose.Schema,
   crypto = require('crypto');
 
+function validatePresenceOf(value){
+  return value && value.length;
+}
+  
 var Document = new Schema({
   title: {type: String, index: true},
   data: {type: String},
-  tags: {type: String},
+  tags: [String],
   user_id: {type: Number, index: true},
 }),
 User = new Schema({
-  email: {type: String, index: {unique: true}},
+  email: {type: String, index: {unique: true}, validate: [validatePresenceOf, 'an email is require']},
   salt: String,
   hashed_password: String
 });
+
+User.pre('save', function(next){
+  if(!validatePresenceOf(this.password)){
+    next(new Error('Invalid password'));
+  }else{
+    next();
+  }
+});
+
 User.virtual('password').set(function(password){
   this.salt = this.makeSalt();
   this._password = password;
   this.hashed_password = this.encryptPassword(password);
+}).get(function(){
+  return this._password;
 });
 
 User.method('encryptPassword', function(password){
