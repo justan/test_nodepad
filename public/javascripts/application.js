@@ -17,18 +17,18 @@ $('.destroy').live('click', function(e) {
 });
 
 $('.logout').live('click', function(e) {
-  e.preventDefault();
-    $.ajax({
-      url: '/sessions',
-      type: 'post',
-      data: {'_method': 'delete'},
-      success: function(d){
-        alert('log out success');
-      },
-      error: function(){
-        alert('error')
-      }
-    });
+  //e.preventDefault();
+  $.ajax({
+    url: '/sessions',
+    type: 'post',
+    data: {'_method': 'delete'},
+    success: function(d){
+      ;
+    },
+    error: function(){
+      alert('error')
+    }
+  });
 });
 
 (function comet(){

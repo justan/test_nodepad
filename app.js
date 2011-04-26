@@ -45,6 +45,7 @@ app.configure('production', function(){
 // Routes
 
 function loadUser(req, res, next) {
+  console.log(req.sessionStore)
   if (req.session.user_id) {
     User.findById(req.session.user_id, function(err, user) {
       if (user) {
@@ -176,20 +177,20 @@ app.post('/sessions', function(req, res) {
 });
 
 // log out
-app.del('/sessions', loadUser, function(req, res) {
+app.del('/sessions', loadUser, function(req, res){
   // Remove the session
-  if (req.session) {
-    req.session.destroy(function() {
-	  delete(req.currentUser);
-	});
+  if (req.session){
+    req.session.destroy(function(){
+	    //delete(req.currentUser);
+    });
   }
+  console.log('1234567');
   res.redirect('/sessions/new');
 });
 
 //register
 app.post('/users.:format?', function(req, res) {
   var user = new User(req.body);
-  console.log(req.body)
   function userSaved() {
     switch (req.params.format) {
       case 'json':
