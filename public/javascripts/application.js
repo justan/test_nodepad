@@ -1,5 +1,5 @@
 (function($){
-$('.destroy').live('click', function(e) {
+var $del = $('.destroy').live('click', function(e) {
   e.preventDefault();
   if (confirm('Are you sure you want to delete that item?')) {
     $.ajax({
@@ -31,7 +31,7 @@ $('.logout').live('click', function(e) {
   });
 });
 
-(function comet(){
+setTimeout(function comet(){
   $.ajax({
     url: '/comet',
     type: 'get',
@@ -44,5 +44,10 @@ $('.logout').live('click', function(e) {
       setTimeout(function(){comet()}, 3000);
     }
   });
-})();
+}, 3000);
+
+//ui
+$del.button()
+
+
 })(jQuery);

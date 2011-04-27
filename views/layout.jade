@@ -3,10 +3,13 @@ html
   head
     title= title
     link(rel='stylesheet', href='/stylesheets/style.css')
+    link(rel='stylesheet', href='/stylesheets/Aristo-jQuery-UI-Theme/css/Aristo/jquery-ui-1.8.7.custom.css')
     script(type='text/javascript', src='https://ajax.googleapis.com/ajax/libs/jquery/1.4.4/jquery.min.js')
+    script(type='text/javascript', src='http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.11/jquery-ui.min.js')
   body
     -if (typeof currentUser !== 'undefined')
       p
-        a(href='javascript:;', class='logout') Log Out
+        = currentUser.email + ' '
+        a(href='/sessions', class='logout') Log Out
     != body
     script(type='text/javascript', src='/javascripts/application.js')

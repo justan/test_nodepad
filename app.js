@@ -3,7 +3,8 @@
  * Module dependencies.
  */
 
-var express = require('express'),
+var sys = require('sys'),
+  express = require('express'),
   mongoose = require('mongoose'),
   mongoStore = require('connect-mongodb'),
   db = mongoose.connect('mongodb://localhost/nodepad'),
@@ -45,16 +46,17 @@ app.configure('production', function(){
 // Routes
 
 function loadUser(req, res, next) {
-  console.log(req.sessionStore)
-  if (req.session.user_id) {
-    User.findById(req.session.user_id, function(err, user) {
-      if (user) {
-        req.currentUser = user;
+  if (req.session.user_id && req.session.currentUser) {
+  //console.log(req.session)
+  //console.log(req.sessionStroe)
+    //User.findById(req.session.user_id, function(err, user) {
+      //if (user) {
+        //req.session.currentUser = user;
         next();
-      } else {
-        res.redirect('/sessions/new');
-      }
-    });
+     // } else {
+       // res.redirect('/sessions/new');
+     // }
+  //  });
   } else {
     res.redirect('/sessions/new');
   }
@@ -72,7 +74,7 @@ app.get('/', loadUser, function(req, res){
 // List
 app.get('/documents.:format?', loadUser, function(req, res){
   Document.find({}, function(err, documents) {
-    res.render('./documents', {documents: documents, currentUser: req.currentUser, title: 'documents'});
+    res.render('./documents', {documents: documents, currentUser: req.session.currentUser, title: 'documents'});
   });
 });
 
@@ -93,18 +95,22 @@ app.post('/documents.:format?', loadUser, function(req, res){
 });
 
 // Read
-app.get('/documents/:id.:format?', function(req, res, next){
+app.get('/documents/:id.:format?', loadUser, function(req, res, next){
   Document.findById(req.params.id, function(err, document){
-	switch(req.params.format){
-	  case'json':
-	    res.send(document.map(function(d){
-		  return d.doc;
-		}));
-	    break;
-	  default:
-	    !/(:?new)/i.test(req.params.id) ? res.render('./documents/show', {d: document, title: document.title}) : next();
-	    break;
-	};
+    if(err){
+	  next(err);
+	}else{
+		switch(req.params.format){
+		  case'json':
+			res.send(document.map(function(d){
+			  return d.doc;
+			}));
+			break;
+		  default:
+			!/(:?new)/i.test(req.params.id) ? res.render('./documents/show', {d: document, currentUser: req.session.currentUser, title: document.title}) : next();
+			break;
+		};
+	}
   });
 });
 
@@ -145,13 +151,13 @@ app.del('/documents/:id.:format?', loadUser, update, function(req, res){
 
 //new
 app.get('/documents/new', loadUser, function(req, res){
-  res.render('./documents/new', {d: new Document(), title: 'New document'});
+  res.render('./documents/new', {d: new Document(), currentUser: req.session.currentUser, title: 'New document'});
 });
 
 //edit
 app.get('/documents/:id.:format?/edit', loadUser, function(req, res){
   Document.findById(req.params.id, function(err, d){
-    res.render('./documents/edit', {d: d, title: 'edit ' + d.title});
+    res.render('./documents/edit', {d: d, currentUser: req.session.currentUser, title: 'edit ' + d.title});
   });
 });
 })();
@@ -168,6 +174,7 @@ app.post('/sessions', function(req, res) {
   User.findOne({email: req.body.email}, function(err, user){
     if(user && user.authenticate(req.body.password)){
 	  req.session.user_id = user.id;
+	  req.session.currentUser = user;
 	  res.redirect('/documents');
 	}else{
 	  //TODO: show error
@@ -179,10 +186,17 @@ app.post('/sessions', function(req, res) {
 // log out
 app.del('/sessions', loadUser, function(req, res){
   // Remove the session
+<<<<<<< HEAD
   if (req.session){
     req.session.destroy(function(){
 	    //delete(req.currentUser);
     });
+=======
+  if (req.session) {
+    req.session.destroy(function() {
+	  //delete(req.currentUser);
+	});
+>>>>>>> origin/master
   }
   console.log('1234567');
   res.redirect('/sessions/new');
@@ -228,6 +242,30 @@ app.get('/comet', function(req, res, next){
     next();
   }
 });
+
+(function _errror(){
+  function NotFound(msg){
+    this.name = 'NotFound';
+	Error.call(this, msg);
+	Error.captureStackTrace(this, arguments.callee);
+  }
+  
+  sys.inherits(NotFound, Error);
+  
+  app.error(function(err, req, res, next){
+    console.log('1234567890-');
+    if(err instanceof NotFound){
+	  res.render('404', 404);
+	}else{
+	  next(err);
+	}
+  });
+  
+  app.error(function(err, req, res){
+    res.render('500', {status: 500, locals: {error: err}});
+  });
+})();
+
 
 // Only listen on $ node app.js
 
