@@ -1,8 +1,7 @@
 li
-  a.title(href= '/documents/' + document.id)
-    h2
-      #{document.title}
+  h2
+    #{document.title}
   = ' '
   a.button.edit(href= '../documents/' + document.id + '/edit') edit
   = ' '
-  button.destroy(value= document.id) delete
+  .destroy(value= document.id) delete
