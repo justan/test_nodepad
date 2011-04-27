@@ -186,17 +186,10 @@ app.post('/sessions', function(req, res) {
 // log out
 app.del('/sessions', loadUser, function(req, res){
   // Remove the session
-<<<<<<< HEAD
-  if (req.session){
-    req.session.destroy(function(){
-	    //delete(req.currentUser);
-    });
-=======
   if (req.session) {
     req.session.destroy(function() {
 	  //delete(req.currentUser);
 	});
->>>>>>> origin/master
   }
   console.log('1234567');
   res.redirect('/sessions/new');
