@@ -1,4 +1,5 @@
 h1= title
+span= author
 form(method='post', action='/documents/' + d.id)
   input(name='_method', value='PUT', type='hidden')
   != partial('field', {locals: {d: d}})

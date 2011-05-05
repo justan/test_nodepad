@@ -82,7 +82,11 @@ app.get('/documents.:format?', loadUser, function(req, res){
 app.post('/documents.:format?', loadUser, function(req, res){
   //console.log("-- " + JSON.stringify(req.body['document']));
   var document = new Document(req.body);
-  document.save(function(){
+  document.user_id = req.session.currentUser._id;
+  document.save(function(err){
+    if(err){
+	  console.error(err)
+	}
 	switch(req.params.format){
 	  case'json':
 	    res.send(document.doc);
@@ -102,12 +106,11 @@ app.get('/documents/:id.:format?', loadUser, function(req, res, next){
 	}else{
 		switch(req.params.format){
 		  case'json':
-			res.send(document.map(function(d){
-			  return d.doc;
-			}));
+			res.send(document.doc);
 			break;
 		  default:
-			!/(:?new)/i.test(req.params.id) ? res.render('./documents/show', {d: document, currentUser: req.session.currentUser, title: document.title}) : next();
+		   // console.log(document.user.length);
+			!/(:?new)/i.test(req.params.id) ? res.render('./documents/show', {d: document, currentUser: req.session.currentUser, title: document.title, author: document.user_id}) : next();
 			break;
 		};
 	}
@@ -151,13 +154,13 @@ app.del('/documents/:id.:format?', loadUser, update, function(req, res){
 
 //new
 app.get('/documents/new', loadUser, function(req, res){
-  res.render('./documents/new', {d: new Document(), currentUser: req.session.currentUser, title: 'New document'});
+  res.render('documents/new', {d: new Document(), currentUser: req.session.currentUser, title: 'New document'});
 });
 
 //edit
 app.get('/documents/:id.:format?/edit', loadUser, function(req, res){
   Document.findById(req.params.id, function(err, d){
-    res.render('./documents/edit', {d: d, currentUser: req.session.currentUser, title: 'edit ' + d.title});
+    res.render('./documents/edit', {d: d, currentUser: req.session.currentUser, title: 'edit ' + d.title, author: d.user_id});
   });
 });
 })();

@@ -1,21 +1,22 @@
 var mongoose = require('mongoose'),
   Schema = mongoose.Schema,
+  ObjectId = Schema.ObjectId,
   crypto = require('crypto');
 
 function validatePresenceOf(value){
   return value && value.length;
 }
   
-var Document = new Schema({
-  title: {type: String, index: true},
-  data: {type: String},
-  tags: [String],
-  user_id: {type: Number, index: true},
-}),
-User = new Schema({
+var User = new Schema({
   email: {type: String, index: {unique: true}, validate: [validatePresenceOf, 'an email is require']},
   salt: String,
   hashed_password: String
+}),
+Document = new Schema({
+  title: {type: String, index: true},
+  data: {type: String},
+  tags: [String],
+  user_id: ObjectId,
 });
 
 User.pre('save', function(next){

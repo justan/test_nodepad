@@ -1,19 +1,33 @@
 (function($){
 var $del = $('.destroy').live('click', function(e) {
   e.preventDefault();
+  var that = this;
   if (confirm('Are you sure you want to delete that item?')) {
     $.ajax({
-      url: '/documents/' + this.value,
+      url: '/documents/' + $(that).parent('li')[0].id.replace(/^list_/, ''),
       type: 'post',
       data: {'_method': 'delete'},
       success: function(d){
-        ;
+        $(that.parentNode).remove();
       },
       error: function(){
-        alert('error')
+        alert('error');
       }
     });
   }
+});
+
+$('.title').live('click', function(){
+	var that = this;
+	$.ajax({
+		url: '/documents/' + $(that).parent('li')[0].id.replace(/^list_/, '') + '.json',
+		success: function(d){
+			alert(d.data)
+		},
+		error: function(){
+			;
+		}
+	});
 });
 
 $('.logout').live('click', function(e) {
