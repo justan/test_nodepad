@@ -1,5 +1,18 @@
 (function($){
-var $del = $('.destroy').live('click', function(e) {
+var $del;
+
+// $('#tabs').tabs({
+  // ajaxOptions:{
+    // error: function(xhr, status, index, anchor){
+      // $(anchor.hash).html('load data failed')
+    // },
+    // success: function(data){
+      // ;
+    // }
+  // }
+// });
+
+$del = $('.destroy').live('click', function(e) {
   e.preventDefault();
   var that = this;
   if (confirm('Are you sure you want to delete that item?')) {

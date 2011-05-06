@@ -5,6 +5,7 @@
 
 var sys = require('sys'),
   express = require('express'),
+  url = require('url'),
   mongoose = require('mongoose'),
   mongoStore = require('connect-mongodb'),
   db = mongoose.connect('mongodb://localhost/nodepad'),
@@ -33,6 +34,18 @@ app.configure(function(){
   app.use(express.methodOverride());
   app.use(app.router);
   app.use(express.static(__dirname + '/public'));
+  app.use(function(req, res, next){
+    next(new NotFound(req.url));
+  });
+  
+  app.error(function(err, req, res, next){
+    console.log('1234567890-');
+    if(err instanceof NotFound){
+	  res.render('404', 404);
+	}else{
+	  next(err);
+	}
+  });
 });
 
 app.configure('development', function(){
@@ -58,7 +71,7 @@ function loadUser(req, res, next) {
      // }
   //  });
   } else {
-    res.redirect('/sessions/new');
+    res.redirect('/sessions/new?redirect=' + encodeURIComponent(req.url));
   }
 }
 
@@ -109,8 +122,9 @@ app.get('/documents/:id.:format?', loadUser, function(req, res, next){
 			res.send(document.doc);
 			break;
 		  default:
-		   // console.log(document.user.length);
-			!/(:?new)/i.test(req.params.id) ? res.render('./documents/show', {d: document, currentUser: req.session.currentUser, title: document.title, author: document.user_id}) : next();
+			!/(:?new)/i.test(req.params.id) ?
+			  res.render('./documents/show', {d: document, currentUser: req.session.currentUser, title: document.title, author: document.user_id}) :
+			  next();
 			break;
 		};
 	}
@@ -168,17 +182,21 @@ app.get('/documents/:id.:format?/edit', loadUser, function(req, res){
 // Sessions
 app.get('/sessions/new', function(req, res) {
   res.render('sessions/new', {
-    locals: { user: new User(), title: 'Log in'}
+    locals: { user: new User(), title: 'Log in', query: url.parse(req.url).query}
   });
 });
 
 // log in
 app.post('/sessions', function(req, res) {
   User.findOne({email: req.body.email}, function(err, user){
+    var rurl = '/documents', query = url.parse(req.url, true).query;
     if(user && user.authenticate(req.body.password)){
 	  req.session.user_id = user.id;
 	  req.session.currentUser = user;
-	  res.redirect('/documents');
+	  if(query.redirect){
+	    rurl = decodeURIComponent(query.redirect);
+	  }
+	  res.redirect(rurl);
 	}else{
 	  //TODO: show error
 	  res.redirect('/sessions/new');
@@ -194,7 +212,7 @@ app.del('/sessions', loadUser, function(req, res){
 	  //delete(req.currentUser);
 	});
   }
-  console.log('1234567');
+  console.log('logout');
   res.redirect('/sessions/new');
 });
 
@@ -239,28 +257,34 @@ app.get('/comet', function(req, res, next){
   }
 });
 
-(function _errror(){
-  function NotFound(msg){
+
+//(function _error(){
+  function NotFound(path){
     this.name = 'NotFound';
-	Error.call(this, msg);
+	console.log('path: ' + path)
+	if(path){
+	  Error.call(this, 'Cannot find ' + path);
+	  this.path = path;
+	}else{
+	  Error.call(this, 'Not Found');
+	}
 	Error.captureStackTrace(this, arguments.callee);
   }
   
-  sys.inherits(NotFound, Error);
-  
-  app.error(function(err, req, res, next){
-    console.log('1234567890-');
-    if(err instanceof NotFound){
-	  res.render('404', 404);
-	}else{
-	  next(err);
-	}
+  app.get('/404', function(req, res){
+    console.log('234')
+    throw new NotFound
   });
+  
+  NotFound.prototype.__proto__ = Error.prototype;
+  
+
   
   app.error(function(err, req, res){
+    console.log('890');
     res.render('500', {status: 500, locals: {error: err}});
   });
-})();
+//})();
 
 
 // Only listen on $ node app.js
