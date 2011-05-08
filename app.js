@@ -58,18 +58,20 @@ app.configure('production', function(){
 
 // Routes
 
+app.param('docId', function(req, res, next, id){
+  Document.findById(id, function(err, document){
+    if(err){
+      next(err);
+    }else{
+      req.document = document;
+      next();
+    }
+  });
+});
+
 function loadUser(req, res, next) {
-  if (req.session.user_id && req.session.currentUser) {
-  //console.log(req.session)
-  //console.log(req.sessionStroe)
-    //User.findById(req.session.user_id, function(err, user) {
-      //if (user) {
-        //req.session.currentUser = user;
-        next();
-     // } else {
-       // res.redirect('/sessions/new');
-     // }
-  //  });
+  if (req.session.currentUser) {
+    next();
   } else {
     res.redirect('/sessions/new?redirect=' + encodeURIComponent(req.url));
   }
@@ -112,23 +114,17 @@ app.post('/documents.:format?', loadUser, function(req, res){
 });
 
 // Read
-app.get('/documents/:id.:format?', loadUser, function(req, res, next){
-  Document.findById(req.params.id, function(err, document){
-    if(err){
-	  next(err);
-	}else{
-		switch(req.params.format){
-		  case'json':
-			res.send(document.doc);
-			break;
-		  default:
-			!/(:?new)/i.test(req.params.id) ?
-			  res.render('./documents/show', {d: document, currentUser: req.session.currentUser, title: document.title, author: document.user_id}) :
-			  next();
-			break;
-		};
-	}
-  });
+app.get('/documents/:docId.:format?', loadUser, function(req, res, next){
+  switch(req.params.format){
+    case'json':
+    res.send(req.document.doc);
+    break;
+    default:
+    !/(:?new)/i.test(req.params.docId) ?
+      res.render('./documents/show', {d: req.document, currentUser: req.session.currentUser, title: req.document.title, author: req.document.user_id}) :
+      next();
+    break;
+  };
 });
 
 function update(req, res, next){
@@ -191,16 +187,17 @@ app.post('/sessions', function(req, res) {
   User.findOne({email: req.body.email}, function(err, user){
     var rurl = '/documents', query = url.parse(req.url, true).query;
     if(user && user.authenticate(req.body.password)){
-	  req.session.user_id = user.id;
-	  req.session.currentUser = user;
-	  if(query.redirect){
-	    rurl = decodeURIComponent(query.redirect);
-	  }
-	  res.redirect(rurl);
-	}else{
-	  //TODO: show error
-	  res.redirect('/sessions/new');
-	}
+      //req.session.user_id = user.id;
+      req.session.currentUser = user;
+      if(query.redirect){
+        rurl = decodeURIComponent(query.redirect);
+      }
+      req.flash('info', 'Welcom %s', user.email);
+      res.redirect(rurl);
+    }else{
+      //TODO: show error
+      res.redirect('/sessions/new');
+    }
   });
 });
 
@@ -226,7 +223,7 @@ app.post('/users.:format?', function(req, res) {
       break;
 
       default:
-        req.session.user_id = user.id;
+        req.session.currentUser = user;
         res.redirect('/documents');
     }
   }
@@ -250,7 +247,7 @@ app.get('/users/new', function(req, res){
 //comet
 app.get('/comet', function(req, res, next){
   //console.log(req.headers)
-  if(req.headers['x-requested-with'] == 'XMLHttpRequest'){
+  if(req.xhr){
     setTimeout(function(){res.end('{}')}, 60000)
   }else{
     next();
@@ -259,7 +256,7 @@ app.get('/comet', function(req, res, next){
 
 
 //(function _error(){
-  function NotFound(path){
+function NotFound(path){
     this.name = 'NotFound';
 	console.log('path: ' + path)
 	if(path){
@@ -269,7 +266,7 @@ app.get('/comet', function(req, res, next){
 	  Error.call(this, 'Not Found');
 	}
 	Error.captureStackTrace(this, arguments.callee);
-  }
+}
   
   app.get('/404', function(req, res){
     console.log('234')

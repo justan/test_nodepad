@@ -33,9 +33,9 @@ $del = $('.destroy').live('click', function(e) {
 $('.title').live('click', function(){
 	var that = this;
 	$.ajax({
-		url: '/documents/' + $(that).parent('li')[0].id.replace(/^list_/, '') + '.json',
+        url: '/documents/' + $(that).parent('li')[0].id.replace(/^list_/, '') + '.json',
 		success: function(d){
-			alert(d.data)
+			alert(d.data);
 		},
 		error: function(){
 			;
